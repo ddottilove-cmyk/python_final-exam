@@ -2,6 +2,7 @@
 import streamlit as st
 import json
 import os
+import altair as alt
 # pyrefly: ignore [missing-import]
 from utils import (total_score, average_score, to_grade, grade_to_gpa,
                    subject_average, subject_top, grade_distribution,
@@ -91,10 +92,13 @@ with tab3:
             st.write(f"평균: {subject_average(students, subject):.2f}")
             st.write(f"최고: {subject_top(students, subject)}")
 
-    chart_data = []
-    for subject in SUBJECTS:
-        chart_data.append({"과목": subject, "평균": subject_average(students, subject)})
-    st.bar_chart(chart_data, x="과목", y="평균", horizontal=True, height=400)
+    chart_data = [{"과목": subject, "평균": subject_average(students, subject)} for subject in SUBJECTS]
+    
+    subject_chart = alt.Chart(alt.Data(values=chart_data)).mark_bar().encode(
+        x=alt.X("평균:Q", scale=alt.Scale(domain=[0, 100]), title="평균"),
+        y=alt.Y("과목:N", sort=SUBJECTS, title="과목")
+    ).properties(height=400)
+    st.altair_chart(subject_chart, use_container_width=True)
 
 # --- Tab 4 : 석차 & 학점 분포 ---
 with tab4:
@@ -109,5 +113,11 @@ with tab4:
 
     st.header("학점 분포")
     dist = grade_distribution(students)
-    dist_data = [{"학점": g, "인원": dist[g]} for g in ["A", "B", "C", "D", "F"]]
-    st.bar_chart(dist_data, x="학점", y="인원", horizontal=True, height=400)
+    grades = ["A", "B", "C", "D", "F"]
+    dist_data = [{"학점": g, "인원": dist[g]} for g in grades]
+    
+    dist_chart = alt.Chart(alt.Data(values=dist_data)).mark_bar().encode(
+        x=alt.X("인원:Q", scale=alt.Scale(domain=[0, max(1, len(students))]), title="인원", axis=alt.Axis(tickMinStep=1)),
+        y=alt.Y("학점:N", sort=grades, title="학점")
+    ).properties(height=400)
+    st.altair_chart(dist_chart, use_container_width=True)
